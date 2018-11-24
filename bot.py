@@ -38,6 +38,11 @@ class Game:
             "team2_flag":"<:b2:515874545517985793>"
         }
 
+        self.messages = None
+        self.channel = None
+
+    def setChannel(self, channel):
+        self.channel = channel
 
     def setEmojis(self, emojis):
         self.emojis = emojis
@@ -46,8 +51,8 @@ class Game:
         return self.resources.get(name)
 
     def newgame(self):
-        w = 9
-        h = 9
+        w = 16
+        h = 16
         self.map = [[0 for x in range(w)] for y in range(h)] 
         for i in range(len(self.map)):
             for j in range(len(self.map[i])):
@@ -67,8 +72,37 @@ class Game:
         
         return msg
 
+    def sendMap(self):
+        msg_list = game.getPrettyMap().split("\n")
+
+        messages = []
+        count = 0
+        smsg = ""
+        for i in msg_list:
+            smsg += i + "\n"
+            #print(smsg)
+            count += 1
+            if count == 3:
+                messages.append(smsg)
+                count = 0
+                smsg = ""
+
+        print(messages)
+
+        edited_msg = []
+
+        for msg in messages:
+            tmp = await client.send_message(message.channel, msg)
+            edited_msg.append(tmp)
+
+        self.messages = edited_msg
+
+        print(edited_msg)
+        await client.edit_message(edited_msg[2], "succ")
+
 game = Game()
 game.newgame()
+
 
 @client.event
 async def on_message(message):
@@ -88,6 +122,7 @@ async def on_message(message):
         await client.send_message(message.channel, 'Done sleeping')
 
     if message.content.startswith("!map"):
+        
         print(message.server.emojis)
         for i in message.server.emojis:
             
@@ -100,7 +135,45 @@ async def on_message(message):
             print("{}:{}".format(i.name, i.id))
         '''
         print(game.getPrettyMap())
-        await client.send_message(message.channel, game.getPrettyMap())
+        '''
+        embed = discord.Embed(title="Tile", description="Desc", color=0x00ff00)
+        embed.add_field(name="t", value=game.getPrettyMap(), inline=False)
+        embed.add_field(name="t", value=game.getPrettyMap(), inline=False)
+
+        await client.send_message(message.channel, embed=embed)
+        '''
+        msg_list = game.getPrettyMap().split("\n")
+
+        messages = []
+        count = 0
+        smsg = ""
+        for i in msg_list:
+            smsg += i + "\n"
+            #print(smsg)
+            count += 1
+            if count == 3:
+                messages.append(smsg)
+                count = 0
+                smsg = ""
+
+        print(messages)
+
+
+
+        edited_msg = []
+
+        for msg in messages:
+            tmp = await client.send_message(message.channel, msg)
+            edited_msg.append(tmp)
+
+        print(edited_msg)
+        await client.edit_message(edited_msg[2], "succ")
+
+    if message.content.startswith("!new"):
+        game.newgame()
+        game.setChannel(message.channel)
+
+
 
     if message.content.startswith("succ"):
         await client.send_message(message.channel, "<:game_tile:515873857526300685>")
