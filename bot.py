@@ -51,8 +51,8 @@ class Game:
         return self.resources.get(name)
 
     def newgame(self):
-        w = 16
-        h = 16
+        w = 15
+        h = 15
         self.map = [[0 for x in range(w)] for y in range(h)] 
         for i in range(len(self.map)):
             for j in range(len(self.map[i])):
@@ -66,13 +66,13 @@ class Game:
         x = self.map
         for i in range(len(x)):
             for j in range(len(x[i])):
-                #msg += self.getResource(self.map[i][j])
-                msg += self.getResource("blank")
+                msg += self.getResource(self.map[i][j])
+                #msg += self.getResource("blank")
             msg += "\n"
         
         return msg
 
-    def sendMap(self):
+    def getFormattedMap(self):
         msg_list = game.getPrettyMap().split("\n")
 
         messages = []
@@ -87,18 +87,34 @@ class Game:
                 count = 0
                 smsg = ""
 
-        print(messages)
+        return messages
 
+    async def editMessages(self, messages):
+        if self.messages != None:
+            for counter, i in enumerate(messages):
+                print("a editing {}".format(counter))
+                await client.edit_message(self.messages[counter], i)
+
+    async def sendMap(self, messages):
         edited_msg = []
 
         for msg in messages:
-            tmp = await client.send_message(message.channel, msg)
+            tmp = await client.send_message(self.channel, msg)
             edited_msg.append(tmp)
 
         self.messages = edited_msg
 
-        print(edited_msg)
-        await client.edit_message(edited_msg[2], "succ")
+        #print(edited_msg)
+        #await client.edit_message(edited_msg[2], "succ")
+
+    def change(self, x, y, t):
+        self.map[x][y] = t
+
+    def addFlag(self, x, y, flag):
+        print("adding a flag")
+        self.map[x][y] = "team1_flag"
+        #self.change(x, y, "team1_flag")
+        
 
 game = Game()
 game.newgame()
@@ -122,63 +138,48 @@ async def on_message(message):
         await client.send_message(message.channel, 'Done sleeping')
 
     if message.content.startswith("!map"):
-        
-        print(message.server.emojis)
-        for i in message.server.emojis:
-            
-            print(str(i))
-        '''
-        print(message.server.emojis)
-        print(message.server.id)
-        for i in message.server.emojis:
-            
-            print("{}:{}".format(i.name, i.id))
-        '''
-        print(game.getPrettyMap())
-        '''
-        embed = discord.Embed(title="Tile", description="Desc", color=0x00ff00)
-        embed.add_field(name="t", value=game.getPrettyMap(), inline=False)
-        embed.add_field(name="t", value=game.getPrettyMap(), inline=False)
-
-        await client.send_message(message.channel, embed=embed)
-        '''
-        msg_list = game.getPrettyMap().split("\n")
-
-        messages = []
-        count = 0
-        smsg = ""
-        for i in msg_list:
-            smsg += i + "\n"
-            #print(smsg)
-            count += 1
-            if count == 3:
-                messages.append(smsg)
-                count = 0
-                smsg = ""
-
-        print(messages)
-
-
-
-        edited_msg = []
-
-        for msg in messages:
-            tmp = await client.send_message(message.channel, msg)
-            edited_msg.append(tmp)
-
-        print(edited_msg)
-        await client.edit_message(edited_msg[2], "succ")
+        game.setChannel(message.channel)
+        await game.sendMap()
 
     if message.content.startswith("!new"):
         game.newgame()
         game.setChannel(message.channel)
+        messages = game.getFormattedMap()
+        await game.sendMap(messages)
 
+    if message.content.startswith("!flag"):
+        game.addFlag(5, 5, "")
+        game.addFlag(1, 1, "")
 
 
     if message.content.startswith("succ"):
         await client.send_message(message.channel, "<:game_tile:515873857526300685>")
 
 
+async def update_map(game):
+    await client.wait_until_ready()
+    counter = 0
+    channel = game.channel
+    tmp = game.getPrettyMap()
+    while not client.is_closed:
+        #print(game.getFormattedMap())
+        print("editing")
+        messages = game.getFormattedMap()
+        #print(messages)
+        await game.editMessages(messages)
+        
+        if tmp != game.getFormattedMap():
+            print("OH SHIT SOMETHING CHANGED")
+
+        tmp = game.getFormattedMap()
+        '''            
+        messages = game.getFormattedMap()
+            game.editMessages(messages)
+            tmp = game.getFormattedMap()
+        '''
+        await asyncio.sleep(2)
+            
+client.loop.create_task(update_map(game))
 
 
 
