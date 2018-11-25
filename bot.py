@@ -1,5 +1,6 @@
 import discord
 import asyncio
+import random
 
 client = discord.Client()
 
@@ -19,11 +20,18 @@ async def my_background_task():
         await client.send_message(channel, counter)
         await asyncio.sleep(1) # task runs every 60 seconds
 
+async def coolshit(game):
+    while not client.is_closed:
+        await asyncio.sleep(1)
+        game.setRandomFlags()
+            
+
 #client.loop.create_task(my_background_task())
 
 
 class Game:
     def __init__(self, server=None):
+        self.on = False
         #self.server = server
         #self.emojis = server.emojis
 
@@ -34,12 +42,16 @@ class Game:
         self.map = [[]]
         self.resources = {
             "blank":"<:a1:515873857526300685>",
-            "team1_flag":"<:b1:515874378282565647>",
-            "team2_flag":"<:b2:515874545517985793>"
+            "team1_flag":"<:b3:515926117719343133>",
+            "team2_flag":"<:b2:515874545517985793>",
+            "player1":"<:b3:515921895741325351>",
+            "player2":"<:b4:515921895904772096>"
         }
 
         self.messages = None
         self.channel = None
+        self.width = 15
+        self.height = 15
 
     def setChannel(self, channel):
         self.channel = channel
@@ -50,15 +62,21 @@ class Game:
     def getResource(self, name):
         return self.resources.get(name)
 
+    def moveRedLeft(self):
+        
+
     def newgame(self):
+
         w = 15
         h = 15
-        self.map = [[0 for x in range(w)] for y in range(h)] 
+        self.map = [[0 for x in range(self.width)] for y in range(self.height)] 
         for i in range(len(self.map)):
             for j in range(len(self.map[i])):
                 #resource = self.getRes("blank")
                 #print(resource)
                 self.map[i][j] = "blank"
+
+        self.on = True
 
     def getPrettyMap(self):
         #print(self.map)
@@ -114,6 +132,24 @@ class Game:
         print("adding a flag")
         self.map[x][y] = "team1_flag"
         #self.change(x, y, "team1_flag")
+
+    async def editOneMessage(self, id, message):
+        await client.edit_message(self.messages[id], message)
+
+    def setRandomFlags(self):
+        x = random.randint(0, self.width-1)
+        y = random.randint(0, self.height-1)
+
+        self.map[x][y] = "player1"
+        x = random.randint(0, self.width-1)
+        y = random.randint(0, self.height-1)
+
+        self.map[x][y] = "player2"
+
+    def isOn(self):
+        return self.on
+
+    
         
 
 game = Game()
@@ -153,20 +189,34 @@ async def on_message(message):
 
 
     if message.content.startswith("succ"):
-        await client.send_message(message.channel, "<:game_tile:515873857526300685>")
+        client.loop.create_task(coolshit(game))
+
+    if message.content.startswith("printemoji"):
+        for i in message.server.emojis:
+            print(str(i))
+    
 
 
 async def update_map(game):
     await client.wait_until_ready()
     counter = 0
     channel = game.channel
-    tmp = game.getPrettyMap()
+    tmp = game.getFormattedMap()
     while not client.is_closed:
         #print(game.getFormattedMap())
         print("editing")
-        messages = game.getFormattedMap()
+
+        new_tmp = game.getFormattedMap()
+        for counter, i in enumerate(new_tmp):
+
+            if new_tmp[counter] != tmp[counter]:
+                await game.editOneMessage(counter, new_tmp[counter])
+                
+
+
+        #messages = game.getFormattedMap()
         #print(messages)
-        await game.editMessages(messages)
+        #await game.editMessages(messages)
         
         if tmp != game.getFormattedMap():
             print("OH SHIT SOMETHING CHANGED")
@@ -177,17 +227,12 @@ async def update_map(game):
             game.editMessages(messages)
             tmp = game.getFormattedMap()
         '''
+
+        #game.setRandomFlags()
         await asyncio.sleep(2)
-            
+
+
 client.loop.create_task(update_map(game))
-
-
-
-
-
-
-
-
 
 
 client.run("NTE1ODU1NDQ5NDk3Nzk2NjE5.DtrLzw.9uxiqIZZTO30aTJtBkDzaMWiWhY")

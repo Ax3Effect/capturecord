@@ -1,0 +1,4 @@
+socket-app/
+node_modules/
+static/socket-app/
+static/ctfapp/node_modules/
